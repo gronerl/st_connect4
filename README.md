@@ -1,92 +1,51 @@
 # Design & Programming Exercise: Connect Four 
-## Solution by Linus Groner
 This repository contains my (Linus Groner's) solutions to the Connect Four assignment as part of the hiring process at S[&]T Corporation, Delft.
 
-This readme file will serve as a place to collect design information and information on the thought process, as well as track the requirements of the assignment. 
+## How to Install and Run
 
-## Requirements and how they are met
+The code was developed and tested using python 3.12. I recommend to always use a virtual environment.
+This python project can be installed using pip with
 
-### Hard implementation requirements 
+```
+cd $CONNECT_4_DIR
+pip install .
+connect4 # pip should install this entrypoint in your venv
+```
 
-#### The program starts with an empty board and displays this on screen. This can be done in any way you like as long as it is clear. For instance, you can just print a few lines to stdout on the command line.
-#### The program asks the human in which column they want to drop the disc. It should then update the board with this move, and display or print the board again.
-#### After this the computer plays a (random) move and the board is updated and printed again.
-#### After every move it must be checked if the move did connect four discs, either horizontally, vertically or diagonally. If it did, the player who played this move is declared the winner and the program exits.
-#### Repeat this until a player has won or until the board is full. In the last case the game is declared a draw.
-#### The program can be a simple command line program but it doesn't have to be. If you prefer a GUI, web-application, etc., feel free to implement that. But you must be able to show a running version of your program at the interview
+To run the tests or for a development install, run 
 
-### Language and Framework requirements
+```
+cd $CONNECT_4_DIR
+pip install -U setuptools wheel pip# always a good idea
+pip install -r ./requirements-dev.txt
+pip install -e .
+pytest ./tests
+```
 
-#### Write in a language supporting OO-programming, to model the game in classes.
-I chose to use Python since it is the language that I am most used to and will have to spend the least time figuring out how to do a given thing. 
+## Brief Documentation and Further Work 
+The connect 4 game is functionally complete as per the requirements. 
 
-#### Add a set of relevant tests that either use a testing framework or that can be executed using a specific option of the main program.
-I chose to use pytest again for the reason that it is a framework I used and liked in the past.
+However, testing is not thorough.
 
-### Documentation and Submission
-Please mail back the assignment containing:
+There are three main (sub)classes, taking care of, respectively:
+* `Connect4` in `game.py`: Captures the game state and its transitions
+* `Player` in `game.py`: Subclasses implement strategies, including the human player and the random computer player
+*  `Connect4TextTerminal` in `terminal.py`: Handles printing and reading input to/from stdin/stdout. This is separate from `Player`, since some print outs are not per player but rather 
 
-#### The time you spent on the assignment:
-1.5h writing this and designing with pencil and paper
+Further refactorings could e.g. 
+* extract the `play` method from `Connect4` class. Currently it is hard to test specific steps of the game, while still keeping test coverage of the driver. A solution could be to create a facade that provides as the entry point, while also maintaining an easier construction of the objects in a feasible way.
+* the 'x' and 'o' player labels are fairly hard-coded and might hinder certain extensions
 
-#### Treat the comments and documentation as if you are delivering to a customer:
-* Rationale of implementation can go inside the code
-* Write a small accompanying text listing the things you would do if you were
-  to spend more time on this project, including:
-  * Work still to be done
-  * Bugs / non-working use cases
-  * Improvements and new features you might want to add later
+The tests are only a sketch of what the intention would be. The idea is to allow unit testing of the above discussed classes, as well as having tests of the listed requirements, as end-to-end tests. Currently only minimal tests for `Connect4` and the terminal are implemented. 
 
-## Analysis of the task
-The requirements file describes a process as follows:
+To summarize, further work:
+* Extend testing
+* Factoring out `play` of `Connect4`, possibly introduce a Facade class
+* The design should be able to handle reasonably well extensions like:
+  * New player strategies, such as new computer players, 
+  * Generalization of the game (e.g. different winning conditions, grid sizes, grid dimensions, "physics" as opposed to currently gravity, number of players)
+  * New frontends, e.g. gui or ncurses
 
-0. initialize empty board
-1. print/display board
-2. collect user input
-3. print/display updated board
-4. check winning condition (exit if met)
-5. compute computer input
-6. collect user input
-7. print/display updated board
-8. check winning condition (exit if met)
-9. repeat from 1.
 
-Different components that appear in this workflow are:
-* Input: User input
-* Output: Display board and declare winner
-* Computer Strategy
-* Check winning conditions
-* Representation of game state
-* Actions / update of game state
-
-Further, we will want the following components:
-* input validation
-* 
-
-I categroize as follows:
-* input: input validation (selecting move)
-* output
-* strategy (user, computer)
-* game state, move validation (game-state dependent)
-To the game, there is no difference who the 
-
-Possible extensions (brain storming):
-* game:
-  * \# of players/colors
-  * grid shape
-  * dimensionality of grid
-  * winning condition (e.g. periodic boundaries)
-  * game "physics" (now, fall down, ...)
-* strategy:
-  * network players
-  * simulating strategies: facilitate efficiently playing an abundance of scenarios to feed an algorithm picking moves
-  * non-local strategies: 
-    access to game history or history of moves of a given player across games
-  * code isolation: make it "impossible" to access certain API from e.g. strategies
-
-The requirements file already hints at some possible extensions, those should be easiest to implement and be directly compatible with the chosen design:
-* Different visuals
-* Alternative computer strategies 
-
-Further considerations:
-* If two human players are present (locally), certain updates, such as the winning declaration, need only to be presented once. However, for a computer player would not have to be informed at all, while e.g. in the case of a network player, each player needs to be informed separately, while in this case information such as "waiting for player A to make his turn" could be transmitted. This could be handled by adding a "terminal" concept. 
+## Time Spent:
+All in all roughly 12 hours. 

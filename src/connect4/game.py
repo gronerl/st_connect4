@@ -50,7 +50,7 @@ class Connect4:
 
     @property
     def ncols(self):
-        return self._nrows
+        return self._ncols
 
     def subscribe(self, subscriber: Connect4Subscriber):
         """Add an object that inherits from Connect4Subscriber to the list of subscribers.
