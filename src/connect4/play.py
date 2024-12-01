@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import random
 from typing import Any
 
 from connect4.exceptions import InvalidMoveException
-from connect4.players import (ComputerPlayer, HumanConnect4Player,
-                              RandomComputerPlayer)
+from connect4.players import ComputerPlayer, HumanConnect4Player, Player
 
 
 class Connect4Subscriber:
@@ -36,7 +34,7 @@ class Connect4TextTerminal(Connect4Subscriber):
         else:
             print(f"You chose to drop a chip in column {move}.")
 
-        print(f"The board now looks like this:")
+        print("The board now looks like this:")
 
         self._print_board(game)
 
@@ -49,7 +47,8 @@ class Connect4TextTerminal(Connect4Subscriber):
             else:
                 print("Congratulations, you win!")
         else:
-            raise NotImplementedError(f"The game result '{result}' is not supported.")
+            err_str = f"The game result '{result}' is not supported."
+            raise NotImplementedError(err_str)
 
     def notify_game_start(self, game):
         print("Welcome to Connect4!")
@@ -61,7 +60,9 @@ class Connect4TextTerminal(Connect4Subscriber):
     def get_next_move(self, game, player):
 
         while True:
-            print(f"Please pick a column to drop your chip. (You are '{player}'):")
+            msg = "Please pick a column to drop your chip."
+            msg += f"(You are '{player}'):"
+            print(msg)
             try:
                 move = int(input())
             except ValueError:

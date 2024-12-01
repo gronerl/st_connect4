@@ -10,36 +10,22 @@ if TYPE_CHECKING:
 
 
 class Player:
-    def _raiseGameNotSupportedException(self, game: Any):
-        from connect4.play import Connect4
-
+    def _raise_game_not_supported_exception(self, game: Any):
         errtxt = f"{self.__class__.__name__} does not implement playing the game {game.__class__.__name__}."
         raise GameNotSupportedException(errtxt)
 
-    def checkIsSupportedGame():
+    def ccheck_is_supported_game(self, game: Any):
         raise NotImplementedError
 
-    def getNextMove():
+    def get_next_move(self, game, player):
         raise NotImplementedError
 
-    def setResultIsTied():
-        pass
-
-    def setResultIsWin():
-        pass
-
-    def setResultIsLose():
-        pass
-
-    def handle_invalid_move():
-        pass
-
-    def get_next_move(self, game: "Connect4"):
+    def handle_invalid_move(self, game, move):
         raise NotImplementedError
 
 
 class ComputerPlayer(Player):
-    def handle_invalid_move(self, move):
+    def handle_invalid_move(self, game: "Connect4", move: int):
         raise AssertionError("(╯°□°)╯︵ ┻━┻ It's a stupid game anyways.")
 
 
@@ -48,7 +34,7 @@ class RandomComputerPlayer(ComputerPlayer):
         from connect4.play import Connect4
 
         if not isinstance(game, Connect4):
-            self._raiseGameNotSupportedException(game)
+            self._raise_game_not_supported_exception(game)
 
     def list_valid_moves(self, game):
         res = list()
@@ -71,9 +57,9 @@ class HumanConnect4Player(Player):
     def init_game(self, game: "Connect4"):
         game.subscribe(self.terminal)
 
-    def check_is_supported_game(self, game: Game):
+    def check_is_supported_game(self, game: Connect4):
         if not isinstance(game, Connect4):
-            self._raiseGameNotSupportedException(game)
+            self._raise_game_not_supported_exception(game)
 
     def get_next_move(self, game, player):
         return self.terminal.get_next_move(game, player)
