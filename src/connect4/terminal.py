@@ -3,7 +3,8 @@ from connect4.players import ComputerPlayer
 
 
 class Connect4TextTerminal(Connect4Subscriber):
-    def _print_board(self, game):
+    def _board_to_str(self, game):
+
         board_strs = ["+"] + [str(i) for i in range(game._ncols)] + ["+", "\n"]
         for i in range(game._nrows):
             board_strs += "|"
@@ -11,7 +12,10 @@ class Connect4TextTerminal(Connect4Subscriber):
                 board_strs += game[j, -1 - i]
             board_strs += "|\n"
         board_strs += ["+"] + ["-"] * game._ncols + ["+"]
-        print("".join(board_strs))
+        return "".join(board_strs)
+
+    def _print_board(self, game):
+        print(self._board_to_str(game))
 
     def notify_board_updated(self, game, player, move):
         if isinstance(game.players[player], ComputerPlayer):
