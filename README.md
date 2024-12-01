@@ -9,6 +9,7 @@ This python project can be installed using pip with
 ```
 cd $CONNECT_4_DIR
 pip install .
+pip install -U setuptools wheel pip# always a good idea
 connect4 # pip should install this entrypoint in your venv
 ```
 
