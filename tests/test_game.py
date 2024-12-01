@@ -1,9 +1,56 @@
 import pytest
 
 from connect4.game import Connect4
-from connect4.players import RandomConnect4ComputerPlayer
-from connect4.terminal import Connect4TextTerminal
+from connect4.players import HumanConnect4Player, RandomConnect4ComputerPlayer
+from connect4.terminal import (
+    CapturedMockInputConnect4TextTerminal,
+    Connect4TextTerminal,
+)
 
+tied_inputs = [
+    "0",
+    "0",
+    "0",
+    "0",
+    "0",
+    "0",
+    "1",
+    "1",
+    "1",
+    "1",
+    "1",
+    "1",
+    "2",
+    "2",
+    "2",
+    "2",
+    "2",
+    "2",
+    "4",
+    "3",
+    "3",
+    "3",
+    "3",
+    "3",
+    "3",
+    "4",
+    "4",
+    "4",
+    "4",
+    "4",
+    "5",
+    "5",
+    "5",
+    "5",
+    "5",
+    "5",
+    "6",
+    "6",
+    "6",
+    "6",
+    "6",
+    "6",
+]
 tied_board = """+0123456+
 |oooxooo|
 |xxxoxxx|
@@ -79,6 +126,25 @@ win_tl_diag = """+0123456+
 """
 
 
+test_not_periodic = """+0123456+
+|x      |
+|x      |
+|x      |
+|       |
+|       |
+|x      |
++-------+
+"""
+
+
+@pytest.fixture
+def captured_mock_game():
+    terminal = CapturedMockInputConnect4TextTerminal()
+    session = Connect4(HumanConnect4Player(terminal), HumanConnect4Player(terminal))
+    yield session
+    terminal.str_strm.close()
+
+
 def str_to_board(board_str):
     board_str = board_str.strip()
     rows = board_str.split("\n")
@@ -122,3 +188,26 @@ class TestConnect4CheckSlot:
         c4 = Connect4(RandomConnect4ComputerPlayer(), RandomConnect4ComputerPlayer())
         c4.board = str_to_board(board_str)
         assert c4._check_slot(hint=hint)
+
+    def test_no_periodic(self):
+        c4 = Connect4(RandomConnect4ComputerPlayer(), RandomConnect4ComputerPlayer())
+        c4.board = str_to_board(test_not_periodic)
+        assert not c4._check_slot(hint=(0, 0))
+        assert not c4._check_slot(hint=(0, 5))
+        assert not c4._check_slot(hint=(0, 3))
+
+
+class TestRequirements:
+    def test_start_empty_board(self, captured_mock_game):
+        mock_terminal = captured_mock_game.players["x"].terminal
+        mock_terminal.set_inputs(tied_inputs)
+
+        captured_mock_game.play()
+
+        output = mock_terminal.str_strm.getvalue()
+        empty_board_idx = output.find(empty_board)
+        first_header_idx = output.find("+0123456+")
+        assert empty_board_idx == first_header_idx
+
+    def test_ask_and_update(self):
+        pass

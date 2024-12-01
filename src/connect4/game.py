@@ -8,16 +8,22 @@ from connect4.players import Player
 
 class Connect4Subscriber:
     def notify_board_updated(self, game, player, move):
+        """Invoked whenever a move is accepted and the board was updated."""
         raise NotImplementedError
 
     def notify_game_result(self, result):
+        """Invoked when the game is decided (a winner is found or the game ends in a draw)."""
         raise NotImplementedError
 
     def notify_game_start(self, game):
+        """Invoked when the game is started."""
         raise NotImplementedError
 
 
 class Connect4:
+    """This class holds the state and state transitions of a classic connect four game.
+    In addition, it provides a mechanism to subscribe on updates of the game progress.
+    """
 
     board: list[list[str]]
     players: dict[str, Player]
@@ -27,6 +33,7 @@ class Connect4:
     subscribers: list[Connect4Subscriber]
 
     def __init__(self, player1: Player, player2: Player):
+        "Provide any 2 players implementing strategies for the connect 4 game."
         self._nrows = 6
         self._ncols = 7
         self.board = [([" "] * self._nrows) for _ in range(self._ncols)]
@@ -37,45 +44,75 @@ class Connect4:
         player1.init_game(self)
         player2.init_game(self)
 
+    @property
+    def nrows(self):
+        return self._nrows
+
+    @property
+    def ncols(self):
+        return self._nrows
+
     def subscribe(self, subscriber: Connect4Subscriber):
+        """Add an object that inherits from Connect4Subscriber to the list of subscribers.
+        If the same instance is already present, no action is done."""
         if subscriber not in self.subscribers:
             self.subscribers.append(subscriber)
 
     def play(self):
+        """Main driver function of the game. Invoking this runs the game start-to-end."""
+        # first, notify subscribers of the start of the game (allowing e.g. to print the empty board)
         for sub in self.subscribers:
             sub.notify_game_start(self)
 
-        while self.is_undecided():
-            player_label, turn_info = self.get_turn_info()
+        # keep playing until the game is decided.
+        while self._is_undecided():
+            # get current player and the board for passing on to players
+            player_label, turn_info = self._get_turn_info()
+
             player = self.players[player_label]
 
+            # query player for next move and handle invalid moves. (Keep querying until input is valid.)
             move = player.get_next_move(self, self._next_player)
             while True:
                 try:
-                    self.apply_move(move)
+                    # if valid, this also triggers updating the subscribers.
+                    self._apply_move(move)
                 except InvalidMoveException:
+                    # Notify player that move was invalid, e.g. so he can inform the user
                     player.handle_invalid_move(self, move)
+                    # query move again
                     move = player.get_next_move(self, self._next_player)
                 else:
                     break
+        # notify subscribers of end of game (allowing e.g. to announce a winner/draw)
+        result = self._check_board()
         for sub in self.subscribers:
-            sub.notify_game_result(self, self._check_board())
+            sub.notify_game_result(self, result)
 
-    def apply_move(self, move):
-        self.validate_move(move)
-        self.update_board(move)
-        self.end_turn()
+    def _apply_move(self, move):
+        self._validate_move(move)
+        self._update_board(move)
+        self._end_turn()
 
     def _check_board(self):
+        # loop over all slots of the game board and check if it is part of a winning connection
+        # if yes, return the label as the winner.
         for i in range(self._ncols):
             for j in range(self._nrows):
                 if self._check_slot(hint=(i, j)):
                     return self[i, j]
+
+        # if there are no winning connections, check if the board is fully filled and therefore tied
         if not any(slot == " " for col in self.board for slot in col):
             return "tied"
+
+        # otherwise the game is not yet decided.
         return "undecided"
 
     def _check_slot(self, hint: tuple[int, int]) -> bool:
+        # check vertical, horizontal, diagonals (left-to-right ascending, ltr descending)
+        # by walking forwards and backwards as far as the symbols are the same. The length
+        # of a connection is given by the index difference of either end.
         candidate_label = self[*hint]
         if candidate_label == " ":
             return False
@@ -143,8 +180,9 @@ class Connect4:
         # default case
         return False
 
-    def validate_move(self, move: int):
-        "A valid move is a valid colum number and that column is not already full."
+    def _validate_move(self, move: int):
+        # A valid move is a valid colum number and that column is not already full.
+        # if a column is full, the top element is no longer empty (self[move, -1] != " ")
         if (
             not isinstance(move, int)
             or move < 0
@@ -153,24 +191,30 @@ class Connect4:
         ):
             raise InvalidMoveException
 
-    def update_board(self, move: int):
+    def _update_board(self, move: int):
+
+        # find lowest free slot by searching from bottom
         i = 0
         while self.board[move][i] != " ":
             i += 1
+        # write player label to lowest free slot
         self.board[move][i] = self._next_player
 
+        # notify subscribers of the changed board
         for sub in self.subscribers:
             sub.notify_board_updated(self, self._next_player, move)
 
-    def end_turn(self):
+    def _end_turn(self):
+        # toggle between "x" and "o" as current players
         self._next_player = "o" if self._next_player == "x" else "x"
 
-    def get_turn_info(self) -> tuple[str, Any]:
+    def _get_turn_info(self) -> tuple[str, Any]:
         return self._next_player, self.board
 
-    def is_undecided(self):
+    def _is_undecided(self) -> bool:
         return self._check_board() == "undecided"
 
     def __getitem__(self, idx):
+        # convenience to allow 2d index directly on Connect4 objects
         col, row = idx
         return self.board[col][row]
