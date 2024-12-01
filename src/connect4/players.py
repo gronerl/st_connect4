@@ -14,7 +14,7 @@ class Player:
         errtxt = f"{self.__class__.__name__} does not implement playing the game {game.__class__.__name__}."
         raise GameNotSupportedException(errtxt)
 
-    def ccheck_is_supported_game(self, game: Any):
+    def check_is_supported_game(self, game: Any):
         raise NotImplementedError
 
     def get_next_move(self, game, player):
@@ -23,13 +23,16 @@ class Player:
     def handle_invalid_move(self, game, move):
         raise NotImplementedError
 
+    def init_game(self, game):
+        raise NotImplementedError
+
 
 class ComputerPlayer(Player):
     def handle_invalid_move(self, game: "Connect4", move: int):
         raise AssertionError("(╯°□°)╯︵ ┻━┻ It's a stupid game anyways.")
 
 
-class RandomComputerPlayer(ComputerPlayer):
+class RandomConnect4ComputerPlayer(ComputerPlayer):
     def check_is_supported_game(self, game: Any):
         from connect4.play import Connect4
 
@@ -47,6 +50,9 @@ class RandomComputerPlayer(ComputerPlayer):
         moves = self.list_valid_moves(game)
         move_idx = random.randint(0, len(moves) - 1)
         return moves[move_idx]
+
+    def init_game(self, game):
+        pass
 
 
 class HumanConnect4Player(Player):
