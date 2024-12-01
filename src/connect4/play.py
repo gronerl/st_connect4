@@ -1,9 +1,11 @@
 from __future__ import annotations
-import random
 
+import random
 from typing import Any
+
 from connect4.exceptions import InvalidMoveException
-from connect4.players import HumanConnect4Player, ComputerPlayer, RandomComputerPlayer
+from connect4.players import (ComputerPlayer, HumanConnect4Player,
+                              RandomComputerPlayer)
 
 
 class Connect4Subscriber:
@@ -13,24 +15,23 @@ class Connect4Subscriber:
 
     def notify_game_result(self, result):
         raise NotImplementedError
-    
+
     def notify_game_start(self, game):
         raise NotImplementedError
 
 
 class Connect4TextTerminal(Connect4Subscriber):
 
-
     def _print_board(self, game):
-        board_strs = ['+']+[str(i) for i in range(game._ncols)]+['+','\n']
+        board_strs = ["+"] + [str(i) for i in range(game._ncols)] + ["+", "\n"]
         for i in range(game._nrows):
-            board_strs += '|'
+            board_strs += "|"
             for j in range(game._ncols):
-                board_strs += game[j, -1-i]
+                board_strs += game[j, -1 - i]
             board_strs += "|\n"
-        board_strs += ['+']+['-']*game._ncols+['+']
+        board_strs += ["+"] + ["-"] * game._ncols + ["+"]
         print("".join(board_strs))
-    
+
     def notify_board_updated(self, game, player, move):
         if isinstance(game.players[player], ComputerPlayer):
             print(f"The computer places a chip in column {move}.")
@@ -51,11 +52,10 @@ class Connect4TextTerminal(Connect4Subscriber):
                 print("Congratulations, you win!")
         else:
             raise NotImplementedError(f"The game result '{result}' is not supported.")
-    
+
     def notify_game_start(self, game):
         print("Welcome to Connect4!")
         self._print_board(game)
-
 
     def handle_invalid_move(self, game, move):
         print(f"Column {move} is not a valid move.")
@@ -92,7 +92,6 @@ class Connect4:
         self.players = dict(x=player1, o=player2)
         player1.init_game(self)
         player2.init_game(self)
-
 
     def subscribe(self, subscriber: Connect4Subscriber):
         if subscriber not in self.subscribers:
@@ -134,7 +133,7 @@ class Connect4:
 
     def _check_slot(self, hint: tuple[int, int]) -> bool:
         candidate_label = self[*hint]
-        if candidate_label==' ':
+        if candidate_label == " ":
             return False
         # check vertical
         col, row_up = hint
@@ -226,7 +225,7 @@ class Connect4:
         return self._next_player, self.board
 
     def is_undecided(self):
-        return self._check_board()=="undecided"
+        return self._check_board() == "undecided"
 
     def __getitem__(self, idx):
         col, row = idx
@@ -238,8 +237,9 @@ def run():
     # session = Connect4(HumanConnect4Player(terminal), RandomComputerPlayer())
     # session = Connect4(HumanConnect4Player(RandomComputerPlayer()), RandomComputerPlayer())
     session = Connect4(HumanConnect4Player(terminal), HumanConnect4Player(terminal))
-    session.subscribe(session.players['x'].terminal)
+    session.subscribe(session.players["x"].terminal)
     session.play()
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     run()
