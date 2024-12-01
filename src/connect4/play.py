@@ -1,113 +1,245 @@
+from __future__ import annotations
 import random
 
-class Game:
-    
-    def __str__():
-        pass
+from typing import Any
+from connect4.exceptions import InvalidMoveException
+from connect4.players import HumanConnect4Player, ComputerPlayer, RandomComputerPlayer
 
-class Connect4(GameState):
-    def __init__(self):
-        super().__init__()
 
-    def __str__():
-        pass
+class Connect4Subscriber:
 
-class InvalidMoveException(Exception):
-    pass
+    def notify_board_updated(self, game, player, move):
+        raise NotImplementedError
 
-class Player:
-    def _raiseGameNotSupportedException(self, game: Game):
-            errtxt = f'{self.__class__.__name__} does not implement playing the game {game.__class__.__name__}.'
-            raise GameNotSupportedException(errtxt)
-    
-    def checkIsSupportedGame():
+    def notify_game_result(self, result):
         raise NotImplementedError
     
-    def getNextMove():
+    def notify_game_start(self, game):
         raise NotImplementedError
+
+
+class Connect4TextTerminal(Connect4Subscriber):
+
+
+    def _print_board(self, game):
+        board_strs = ['+']+[str(i) for i in range(game._ncols)]+['+','\n']
+        for i in range(game._nrows):
+            board_strs += '|'
+            for j in range(game._ncols):
+                board_strs += game[j, -1-i]
+            board_strs += "|\n"
+        board_strs += ['+']+['-']*game._ncols+['+']
+        print("".join(board_strs))
     
-    def setResultIsTied():
-        pass
+    def notify_board_updated(self, game, player, move):
+        if isinstance(game.players[player], ComputerPlayer):
+            print(f"The computer places a chip in column {move}.")
+        else:
+            print(f"You chose to drop a chip in column {move}.")
 
-    def setResultIsWin():
-        pass
+        print(f"The board now looks like this:")
 
-    def setResultIsLose():
-        pass
+        self._print_board(game)
+
+    def notify_game_result(self, game, result):
+        if result == "tied":
+            print("The game ended in a tie.")
+        elif result in game.players:
+            if isinstance(game.players[result], ComputerPlayer):
+                print("You Lose. Better luck next time!")
+            else:
+                print("Congratulations, you win!")
+        else:
+            raise NotImplementedError(f"The game result '{result}' is not supported.")
     
-class ComputerPlayer(Player):
-    def invalidMove(self, move):
-        raise AssertionError("(╯°□°)╯︵ ┻━┻ It's a stupid game anyways.")
-
-class RandomComputerPlayer(ComputerPlayer):
-    def checkIsSupportedGame(self, game: Game):
-        if not isinstance(game, Game):
-            self._raiseGameNotSupportedException(game)
-    
-    def getNextMove(self, game: Game):
-        moves = game.listValidMoves()
-        move_idx = random.randint(0, len(moves)-1)
-        return moves[move_idx]
+    def notify_game_start(self, game):
+        print("Welcome to Connect4!")
+        self._print_board(game)
 
 
-class HumanConnect4Player(Player):
-    def checkIsSupportedGame(self, game: Game):
-        if not isinstance(game, Connect4):
-            self._raiseGameNotSupportedException(game)
-        
-    def getNextMove(self, game:Game):
-        print("The current board is:")
-        print(str(game))
+    def handle_invalid_move(self, game, move):
+        print(f"Column {move} is not a valid move.")
+
+    def get_next_move(self, game, player):
+
         while True:
-            print("Please pick a column to drop your color:")
+            print(f"Please pick a column to drop your chip. (You are '{player}'):")
             try:
                 move = int(input())
             except ValueError:
-                print('Your input is not a valid integer.')
+                print("Your input is not a valid integer.")
             else:
                 break
         return move
-    def setResultIsTied():
-        print("The game ended in a tie.")
-    
-    def setResultIsWin():
-        print("Congratulations, you win!")
 
-    def setResultIsLose():
-        print("You Lose. Better luck next time!")
 
-class GameSession:
-    
-    game: Game
-    players: list[Player]
+class Connect4:
+
+    board: list[list[str]]
+    players: dict[str, Player]
+    _next_player: str
+    _nrows: int
+    _ncols: int
+    subscribers: list[Connect4Subscriber]
+
+    def __init__(self, player1: Player, player2: Player):
+        self._nrows = 6
+        self._ncols = 7
+        self.board = [([" "] * self._nrows) for _ in range(self._ncols)]
+        self._next_player = "x"
+        self.subscribers = []
+
+        self.players = dict(x=player1, o=player2)
+        player1.init_game(self)
+        player2.init_game(self)
+
+
+    def subscribe(self, subscriber: Connect4Subscriber):
+        if subscriber not in self.subscribers:
+            self.subscribers.append(subscriber)
 
     def play(self):
-        while self.game.isUndecided():
-            player_idx = self.game.next_player()
-            player = self.players[player_idx]
+        for sub in self.subscribers:
+            sub.notify_game_start(self)
 
-            p.setBoard(self.game.state)
-            move = player.getNextMove(self.game.state)
+        while self.is_undecided():
+            player_label, turn_info = self.get_turn_info()
+            player = self.players[player_label]
+
+            move = player.get_next_move(self, self._next_player)
             while True:
                 try:
-                    self.game.applyMove(move)
+                    self.apply_move(move)
                 except InvalidMoveException:
-                    player.invalidMove(move)
-                    move = player.getNextMove(self.game.state)
+                    player.handle_invalid_move(self, move)
+                    move = player.get_next_move(self, self._next_player)
                 else:
                     break
-            if self.rules.isDecided():
-                break
+        for sub in self.subscribers:
+            sub.notify_game_result(self, self._check_board())
 
-        if self.game.isTied():
-            for p in self.players:
-                p.setResultIsTied()
-        elif self.game.isWin():
-            for p in self.players:
-                p.setResultIsWin()
+    def apply_move(self, move):
+        self.validate_move(move)
+        self.update_board(move)
+        self.end_turn()
+
+    def _check_board(self):
+        for i in range(self._ncols):
+            for j in range(self._nrows):
+                if self._check_slot(hint=(i, j)):
+                    return self[i, j]
+        if not any(slot == " " for col in self.board for slot in col):
+            return "tied"
+        return "undecided"
+
+    def _check_slot(self, hint: tuple[int, int]) -> bool:
+        candidate_label = self[*hint]
+        if candidate_label==' ':
+            return False
+        # check vertical
+        col, row_up = hint
+        row_down = int(row_up)
+        row_up += 1
+        while row_up < self._nrows and self[col, row_up] == candidate_label:
+            row_up += 1
+        while row_down - 1 >= 0 and self[col, row_down - 1] == candidate_label:
+            row_down -= 1
+        if row_up - row_down >= 4:
+            return True
+
+        # check horizontal
+        col_up, row = hint
+        col_down = int(col_up)
+        col_up += 1
+        while col_up < self._ncols and self[col_up, row] == candidate_label:
+            col_up += 1
+        while col_down - 1 >= 0 and self[col_down - 1, row] == candidate_label:
+            col_down -= 1
+        if col_up - col_down >= 4:
+            return True
+
+        # check diagonal 1
+        col, row = hint
+        diff_up = 1
+        diff_down = 0
+        while (
+            col + diff_up < self._ncols
+            and row + diff_up < self._nrows
+            and self[col + diff_up, row + diff_up] == candidate_label
+        ):
+            diff_up += 1
+        while (
+            col + diff_down - 1 >= 0
+            and row + diff_down - 1 >= 0
+            and self[col + diff_down - 1, row + diff_down - 1] == candidate_label
+        ):
+            diff_down -= 1
+        if diff_up - diff_down >= 4:
+            return True
+
+        # check diagonal 2
+        col, row = hint
+        diff_up = 1
+        diff_down = 0
+        while (
+            col + diff_up < self._ncols
+            and row - diff_up >= 0
+            and self[col + diff_up, row - diff_up] == candidate_label
+        ):
+            diff_up += 1
+        while (
+            col + diff_down - 1 > 0
+            and row - (diff_down - 1) < self._nrows
+            and self[col + diff_down - 1, row - (diff_down - 1)] == candidate_label
+        ):
+            diff_down -= 1
+
+        if diff_up - diff_down >= 4:
+            return True
+
+        # default case
+        return False
+
+    def validate_move(self, move: int):
+        "A valid move is a valid colum number and that column is not already full."
+        if (
+            not isinstance(move, int)
+            or move < 0
+            or move > self._ncols
+            or self[move, -1] != " "
+        ):
+            raise InvalidMoveException
+
+    def update_board(self, move: int):
+        i = 0
+        while self.board[move][i] != " ":
+            i += 1
+        self.board[move][i] = self._next_player
+
+        for sub in self.subscribers:
+            sub.notify_board_updated(self, self._next_player, move)
+
+    def end_turn(self):
+        self._next_player = "o" if self._next_player == "x" else "x"
+
+    def get_turn_info(self) -> tuple[str, Any]:
+        return self._next_player, self.board
+
+    def is_undecided(self):
+        return self._check_board()=="undecided"
+
+    def __getitem__(self, idx):
+        col, row = idx
+        return self.board[col][row]
 
 
+def run():
+    terminal = Connect4TextTerminal()
+    # session = Connect4(HumanConnect4Player(terminal), RandomComputerPlayer())
+    # session = Connect4(HumanConnect4Player(RandomComputerPlayer()), RandomComputerPlayer())
+    session = Connect4(HumanConnect4Player(terminal), HumanConnect4Player(terminal))
+    session.subscribe(session.players['x'].terminal)
+    session.play()
 
 if __name__=="__main__":
-    session = GameSession(Connect4, TextPlayer, RandomComputerPlayer)
-    session.play()
+    run()
