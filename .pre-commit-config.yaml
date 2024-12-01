@@ -1,0 +1,17 @@
+repos:
+-   repo: https://github.com/psf/black
+    rev: 22.10.0
+    hooks:
+    -   id: black
+-   repo: https://github.com/pycqa/flake8
+    rev: ''  # pick a git hash / tag to point to
+    hooks:
+    -   id: flake8
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: ''  # Use the sha / tag you want to point at
+    hooks:
+    -   id: mypy
+-   repo: https://github.com/pre-commit/mirrors-isort
+    rev: ''  # Use the revision sha / tag you want to point at
+    hooks:
+    -   id: isort

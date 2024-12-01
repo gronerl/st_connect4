@@ -9,7 +9,6 @@ from connect4.players import (ComputerPlayer, HumanConnect4Player,
 
 
 class Connect4Subscriber:
-
     def notify_board_updated(self, game, player, move):
         raise NotImplementedError
 
@@ -21,7 +20,6 @@ class Connect4Subscriber:
 
 
 class Connect4TextTerminal(Connect4Subscriber):
-
     def _print_board(self, game):
         board_strs = ["+"] + [str(i) for i in range(game._ncols)] + ["+", "\n"]
         for i in range(game._nrows):
